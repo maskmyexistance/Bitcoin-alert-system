@@ -28,7 +28,8 @@ def get_bitcoin_price():
 def main():
     bitcoin_price = get_bitcoin_price()
     if bitcoin_price is not None:
-        print(f"Current Bitcoin price: {bitcoin_price}")
+        # maybe change bitcoin price from usd to hkd for my own transaction
+        print(f"Current Bitcoin price in USD: {bitcoin_price}")
     else:
         print("Failed to retrieve Bitcoin price.")
 

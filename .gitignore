@@ -2,3 +2,11 @@
 .env
 *.env
 .env.*
+
+
+# --- Python ---
+__pycache__/
+*.pyc
+
+# --- Tests ---
+test.py
