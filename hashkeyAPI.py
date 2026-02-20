@@ -6,6 +6,7 @@ import json
 import hmac
 import hashlib
 import openpyxl
+from connectPushNoti import test_notifier
 
 def test_hashkey_api():
     pass
@@ -83,6 +84,16 @@ def insert_record_to_excel(bors:str, price:float, quantity:float):
             break
     
     excel_file.save(excel_path)
+
+    # Apart from insert transaction to excel, send push notification also.
+    response = test_notifier('bark', f'Bitcoin Transaction Recorded:', f'Buy or Sell: {bors} \nPrice: {price}, \nQuantity: {quantity}, \nVolume: {price*quantity}')
+    response_json = response.json()
+    print(f"Response: {json.dumps(response_json, indent=4)}")
+    if response_json.get("code") == 200:
+        print("Push notification sent successfully.")
+    else:     
+        print(f"Failed to send push notification. \nResponse code: {response_json['code']}, \nResponse text: {response_json['message']}")
+
     return excel_file
 
 def place_order(symbol, side, order_type, price, quantity, timestamp):
