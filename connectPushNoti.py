@@ -2,7 +2,7 @@ from onepush import get_notifier
 import os
 from dotenv import load_dotenv
 
-# this project will be using OnePush as the push notification service.
+# this project will be using OnePush and Bark as the provider as the push notification service.
 
 def test_notifier(provider:str, title:str, content:str):
 

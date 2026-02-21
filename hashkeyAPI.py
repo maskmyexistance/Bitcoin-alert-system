@@ -5,8 +5,8 @@ import twilio
 import json
 import hmac
 import hashlib
-import openpyxl
 from connectPushNoti import test_notifier
+from insertExcel import insert_record_to_excel
 
 def test_hashkey_api():
     pass
@@ -14,9 +14,7 @@ def test_hashkey_api():
 def get_credentials() -> dict:
 
     load_dotenv()
-
     credentials = {}
-
     credentials["api_key"] = os.getenv("HASHKEY_API_KEY")
     credentials["api_secret"] = os.getenv("HASHKEY_API_SECRET")
     credentials["base_url"] = os.getenv("HASHKEY_API_DOMAIN_DEV")
@@ -46,60 +44,12 @@ def create_signature(self, content):
         ).hexdigest()
         return hmac_digest
 
-def insert_record_to_excel(bors:str, price:float, quantity:float):
-
-    # right now these price quality value are for testing, in prod these will be extracted from hashkey API response.
-    load_dotenv()
-
-    excel_path = os.getenv("BITCOIN_TRANSACTION_EXCEL_PATH")
-    try:
-        excel_file = openpyxl.load_workbook(excel_path)
-    except FileNotFoundError:
-        print("Excel file not found.")
-        return None
-    except PermissionError:
-        print("Permission denied. Please close the Excel file if it's open and try again.")
-        return None
-    
-    excel_sheet = excel_file.active
-    # Extract first 4 columns of the first row as headers and print them
-    header:list = [cell.value for cell in excel_sheet[1][:4]]
-    print(f"Excel headers: {header}")
-
-    # loop each row, find the first empty row, and insert data into the first 4 columns
-    for row in excel_sheet.iter_rows(min_row=2, max_col=4):
-        if all(cell.value is None for cell in row):
-            print(f"""Inserting record into Excel: 
-                  方向: {bors}, 
-                  成交價: {price}, 
-                  數量: {quantity}
-                  交易量: {price*quantity}
-""")
-            row[0].value = bors  # 方向
-            row[1].value = price  # 成交價 in HKD
-            row[2].value = quantity  # 數量
-            row[3].value = price*quantity  #交易量
-
-            # Column 4 will be storing the handling fee, will add the logic later.
-            break
-    
-    excel_file.save(excel_path)
-
-    # Apart from insert transaction to excel, send push notification also.
-    response = test_notifier('bark', f'Bitcoin Transaction Recorded:', f'Buy or Sell: {bors} \nPrice: {price}, \nQuantity: {quantity}, \nVolume: {price*quantity}')
-    response_json = response.json()
-    print(f"Response: {json.dumps(response_json, indent=4)}")
-    if response_json.get("code") == 200:
-        print("Push notification sent successfully.")
-    else:     
-        print(f"Failed to send push notification. \nResponse code: {response_json['code']}, \nResponse text: {response_json['message']}")
-
-    return excel_file
-
 def place_order(symbol, side, order_type, price, quantity, timestamp):
     cred = get_credentials()
     url = f"{cred['base_url']}/v1/orders"
     headers = cred['headers']
+
+    # Need to understand what these 6 field means
     data = {
             "symbol": symbol,
             "side": side,
@@ -120,7 +70,21 @@ def place_order(symbol, side, order_type, price, quantity, timestamp):
         data = response.json()
         print("Response:")
         print(json.dumps(data, indent=4))
-        # send SMS or email notification here if needed
+
+        # Insert transaction record to excel
+        excel = insert_record_to_excel(side, price, quantity)
+
+        if excel is not None:
+           print("Record inserted to Excel successfully.")
+
+        # Apart from insert transaction to excel, send push notification also.
+        response = test_notifier('bark', f'Bitcoin Transaction Recorded:', f'Buy or Sell: {side} \nPrice: {price}, \nQuantity: {quantity}, \nVolume: {price*quantity}')
+        response_json = response.json()
+        if response_json.get("code") == 200:
+            print("Push notification sent successfully.")
+        else:     
+            print(f"Failed to send push notification. \nResponse code: {response_json['code']}, \nResponse text: {response_json['message']}")
+
         return data
 
     else:

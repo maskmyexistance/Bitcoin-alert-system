@@ -33,5 +33,8 @@ def main():
     else:
         print("Failed to retrieve Bitcoin price.")
 
+    # In the future, insert the logic to place order through Hashkey API here.
+    # For the logic to place order (for example when I sell and when I buy), I will set up a simple rule-based system.
+
 if __name__ == "__main__":
     main()
